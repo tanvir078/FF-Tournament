@@ -2,29 +2,93 @@
 @tailwind components;
 @tailwind utilities;
 
+
+
+:root {
+  --arena-primary: #0671a2d1;
+  --arena-secondary: #67078c;
+  }
+
+  @theme {
+    
+  --font-lora: "lora", sans-serif;
+  --font-times: "times-new-roman", serif;
+  --font-sonar: "sonar-bangla", sans-serif;
+}
+
+/* --- Lora Font --- */
+@font-face {
+  font-family: "lora";
+  font-style: normal;
+  font-weight: 700;
+  src: url("../fonts/Lora-Bold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "lora";
+  font-style: normal;
+  font-weight: 400;
+  src: url("../fonts/Lora-Regular.woff2") format("woff2");
+}
+
+/* --- Times New Roman Font --- */
+@font-face {
+  font-family: "times-new-roman";
+  font-style: normal; /* 'regular' পরিবর্তন করে 'normal' করা হয়েছে */
+  font-weight: 400;
+  src: url("../fonts/Times_New_Roman_Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "times-new-roman";
+  font-style: italic;
+  font-weight: 400;
+  src: url("../fonts/Times_New_Roman_Italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "times-new-roman";
+  font-style: normal; /* 'bold' পরিবর্তন করে 'normal' করা হয়েছে */
+  font-weight: 700;
+  src: url("../fonts/Times_New_Roman_Bold.woff2") format("woff2");
+}
+
+/* --- Sonar Bangla Font --- */
+@font-face {
+  font-family: "sonar-bangla";
+  font-style: normal; /* 'bold' পরিবর্তন করে 'normal' করা হয়েছে */
+  font-weight: 700;
+  src: url("../fonts/Sonar_Bangla_Bold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "sonar-bangla";
+  font-style: normal; /* 'bold' পরিবর্তন করে 'normal' করা হয়েছে */
+  font-weight: 400;
+  src: url("../fonts/Sonar_Bangla_Regular.woff2") format("woff2");
+}
+
+
 @layer base {
   body {
     @apply bg-gray-900 text-white antialiased;
   }
-  
+
   body.light {
     @apply bg-gray-50 text-gray-900;
   }
 }
 
+
 @layer components {
   .btn-primary {
     @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
   }
-  
+
   .btn-secondary {
     @apply bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
   }
-  
+
   .card {
     @apply bg-gray-800 rounded-lg border border-gray-700 p-6;
   }
-  
+
   .light .card {
     @apply bg-white border-gray-200;
   }
@@ -36,4 +100,109 @@
   .light .input-field {
     @apply bg-white border-gray-300 text-gray-900 placeholder-gray-500;
   }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.container {
+    display: flex;
+    flex-direction: row; /* Element-gulo pashapashi thakbe */
+    gap: 20px;
+}
+
+/* --- Mobile layout (Upor-niche chole ashbe) --- */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column; /* Mobile screen-e upor-niche chole ashbe */
+    }
+}
+
+.box {
+    background-color: blue;
+    font-size: 24px;
+    padding: 20px;
+}
+
+@media (max-width: 576px) {
+   .box {
+        background-color: green; /* Mobile-e rong shobuj hoye jabe */
+        font-size: 16px;         /* Mobile-e lekha choto hoye jabe */
+        padding: 10px;           /* Spacing kome jabe */
+    }
+}
+
+.bg-dashboard {
+  background-image: url("../images/dashboard-bg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.bg-bg1{
+  @apply h-[190px] bg-cover bg-center bg-no-repeat;
+  background-image: url("../images/bg-bg.png");
+}
+
+.bg-bg2{
+  background-image: url("../images/bg-bg.png");
+}
+
+.bg-bankicon{
+  @apply w-7 h-7 bg-contain bg-center bg-no-repeat;
+  background-image: url("../images/bank-statement.png");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.bg-growth{
+  @apply w-7 h-7 bg-contain bg-center bg-no-repeat;
+  background-image: url("../images/growth.png");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.bg-trnsprt{
+  background: linear-gradient(to right, #4d025ee4, #86209ade, #ad29c8de);
+  backdrop-filter: blur(5px);
+  border-radius: 25px 0 35px 0px;
+  border-inline-start: 12px solid #ebba08;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.bg-trnsprt1{
+  background: linear-gradient(to right, #4d025ee4, #86209ade, #ad29c8de);
+  backdrop-filter: blur(5px);
+  border-radius: 0px 0px 35px 35px;
+  border-inline-start: 12px solid #ebba08;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.text-color{
+  background: linear-gradient(45deg, #fd9105e4, #08829dde) white;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: #ebba08;
+  background-clip: text;
 }

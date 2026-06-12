@@ -14,7 +14,7 @@ interface Tournament {
   id: string;
   title: string;
   format: 'SOLO' | 'DUO' | 'SQUAD' | 'CLASH_SQUAD';
-  status: 'REGISTRATION_OPEN' | 'UPCOMING' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
+  status: 'DRAFT' | 'REGISTRATION_OPEN' | 'REGISTRATION_CLOSED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
   entryFee: number;
   prizePool: number;
   registeredTeams: number;
@@ -39,7 +39,7 @@ export default function AdminTournaments() {
   const [formatFilter, setFormatFilter] = useState('ALL');
 
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') {
+    if (!user || !['ADMIN', 'ORGANIZER'].includes(user.role)) {
       router.push('/admin/login');
       return;
     }
@@ -49,69 +49,8 @@ export default function AdminTournaments() {
   const fetchTournaments = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/admin/tournaments');
-      setTournaments(response.data || [
-        {
-          id: '1',
-          title: 'Free Fire Championship 2024',
-          format: 'SQUAD',
-          status: 'REGISTRATION_OPEN',
-          entryFee: 50,
-          prizePool: 5000,
-          perKillPrize: 10,
-          registeredTeams: 45,
-          maxTeams: 64,
-          startDate: '2024-06-15',
-          startTime: '20:00',
-          description: 'Annual championship tournament',
-        },
-        {
-          id: '2',
-          title: 'Weekly Tournament #12',
-          format: 'DUO',
-          status: 'ONGOING',
-          entryFee: 25,
-          prizePool: 2000,
-          perKillPrize: 5,
-          registeredTeams: 32,
-          maxTeams: 32,
-          startDate: '2024-05-28',
-          startTime: '19:00',
-          description: 'Weekly competitive series',
-          roomDetails: {
-            roomId: '12345678',
-            password: 'WEEKLY12'
-          }
-        },
-        {
-          id: '3',
-          title: 'Solo Showdown',
-          format: 'SOLO',
-          status: 'COMPLETED',
-          entryFee: 10,
-          prizePool: 1000,
-          perKillPrize: 3,
-          registeredTeams: 100,
-          maxTeams: 100,
-          startDate: '2024-05-20',
-          startTime: '18:00',
-          description: 'Solo battle royale event',
-        },
-        {
-          id: '4',
-          title: 'Clash Squad Cup',
-          format: 'CLASH_SQUAD',
-          status: 'UPCOMING',
-          entryFee: 30,
-          prizePool: 3000,
-          perKillPrize: 7,
-          registeredTeams: 20,
-          maxTeams: 32,
-          startDate: '2024-06-10',
-          startTime: '21:00',
-          description: '4v4 clash squad tournament',
-        },
-      ]);
+      const response = await api.get('/management/tournaments');
+      setTournaments(response.data || []);
     } catch (err) {
       console.error('Failed to fetch tournaments');
     } finally {
@@ -132,7 +71,7 @@ export default function AdminTournaments() {
 
   const handleToggleStatus = async (tournamentId: string, newStatus: string) => {
     try {
-      await api.patch(`/admin/tournaments/${tournamentId}`, { status: newStatus });
+      await api.put(`/tournaments/${tournamentId}/status`, { status: newStatus });
       fetchTournaments();
     } catch (err) {
       console.error('Failed to update tournament status');
@@ -144,7 +83,6 @@ export default function AdminTournaments() {
       case 'ONGOING': return 'bg-red-500/20 text-red-400 border-red-500/30';
       case 'COMPLETED': return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
       case 'REGISTRATION_OPEN': return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'UPCOMING': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
       case 'CANCELLED': return 'bg-red-900/20 text-red-400 border-red-500/30';
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
@@ -228,7 +166,8 @@ export default function AdminTournaments() {
               >
                 <option value="ALL">All Status</option>
                 <option value="REGISTRATION_OPEN">Registration Open</option>
-                <option value="UPCOMING">Upcoming</option>
+                <option value="DRAFT">Draft</option>
+                <option value="REGISTRATION_CLOSED">Registration Closed</option>
                 <option value="ONGOING">Ongoing</option>
                 <option value="COMPLETED">Completed</option>
                 <option value="CANCELLED">Cancelled</option>
@@ -308,7 +247,7 @@ export default function AdminTournaments() {
               )}
               
               <div className="flex gap-2">
-                <Button
+                {user?.role === 'ADMIN' && <Button
                   size="sm"
                   variant="outline"
                   className="flex-1"
@@ -316,7 +255,7 @@ export default function AdminTournaments() {
                 >
                   <Eye className="h-4 w-4 mr-1" />
                   View
-                </Button>
+                </Button>}
                 <Button
                   size="sm"
                   variant="outline"

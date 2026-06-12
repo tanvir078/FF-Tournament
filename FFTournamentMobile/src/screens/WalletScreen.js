@@ -1,227 +1,130 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import api from '../lib/api';
+import { colors } from '../theme';
+import { Badge, Card, Empty, SectionTitle } from '../components/ui';
 
 export default function WalletScreen() {
-  const wallet = {
-    mainWallet: 500,
-    winningWallet: 1250,
-    referralWallet: 200,
-    totalBalance: 1950,
+  const [wallet, setWallet] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [mode, setMode] = useState('deposit');
+  const [amount, setAmount] = useState('');
+  const [reference, setReference] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    const [walletResponse, transactionResponse] = await Promise.all([
+      api.get('/wallet/user'),
+      api.get('/wallet/transactions'),
+    ]);
+    setWallet(walletResponse.data);
+    setTransactions(transactionResponse.data);
+  }, []);
+
+  useEffect(() => {
+    load().catch(() => {});
+  }, [load]);
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await load().catch(() => {});
+    setRefreshing(false);
   };
 
-  const transactions = [
-    { id: '1', type: 'EARNING', amount: 150, description: 'Tournament Prize', date: 'May 28' },
-    { id: '2', type: 'DEPOSIT', amount: 500, description: 'Deposit via bKash', date: 'May 27' },
-    { id: '3', type: 'ENTRY_FEE', amount: -100, description: 'Tournament Entry', date: 'May 26' },
-    { id: '4', type: 'REFERRAL', amount: 50, description: 'Referral Bonus', date: 'May 25' },
-  ];
+  const submit = async () => {
+    try {
+      const endpoint = mode === 'deposit' ? '/wallet/deposit' : '/withdraw';
+      const payload = mode === 'deposit'
+        ? { amount: Number(amount), transactionId: reference || undefined }
+        : { amount: Number(amount), method: 'bkash', mobileNumber };
+      await api.post(endpoint, payload);
+      setAmount('');
+      setReference('');
+      setMobileNumber('');
+      await load();
+      Alert.alert('Submitted', mode === 'deposit' ? 'Deposit is pending verification' : 'Withdrawal is pending approval');
+    } catch (err) {
+      Alert.alert('Unable to submit', err.response?.data?.message || 'Try again');
+    }
+  };
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Wallet</Text>
-        </View>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}
+    >
+      <Text style={styles.balance}>৳{Number(wallet?.totalBalance || 0).toFixed(2)}</Text>
 
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Total Balance</Text>
-          <Text style={styles.balanceAmount}>৳{wallet.totalBalance}</Text>
-        </View>
+      <View style={styles.switcher}>
+        {['deposit', 'withdraw'].map((item) => (
+          <Pressable key={item} style={[styles.switch, mode === item && styles.switchActive]} onPress={() => setMode(item)}>
+            <Text style={[styles.switchText, mode === item && styles.switchTextActive]}>{item.toUpperCase()}</Text>
+          </Pressable>
+        ))}
+      </View>
 
-        <View style={styles.walletGrid}>
-          <View style={styles.walletCard}>
-            <Ionicons name="wallet" size={24} color="#3b82f6" />
-            <Text style={styles.walletLabel}>Main Wallet</Text>
-            <Text style={styles.walletAmount}>৳{wallet.mainWallet}</Text>
+      <Card style={styles.form}>
+        <TextInput
+          keyboardType="decimal-pad"
+          placeholder="Amount"
+          placeholderTextColor={colors.muted}
+          style={styles.input}
+          value={amount}
+          onChangeText={setAmount}
+        />
+        {mode === 'deposit' ? (
+          <TextInput
+            placeholder="Transaction ID"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={reference}
+            onChangeText={setReference}
+          />
+        ) : (
+          <TextInput
+            keyboardType="phone-pad"
+            placeholder="bKash number"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={mobileNumber}
+            onChangeText={setMobileNumber}
+          />
+        )}
+        <Pressable style={styles.button} onPress={submit}>
+          <Text style={styles.buttonText}>Submit</Text>
+        </Pressable>
+      </Card>
+
+      <SectionTitle>Transactions</SectionTitle>
+      {transactions.length ? transactions.map((transaction) => (
+        <Card key={transaction.id} style={styles.transaction}>
+          <View>
+            <Text style={styles.transactionType}>{transaction.type}</Text>
+            <Text style={styles.meta}>৳{transaction.amount}</Text>
           </View>
-          <View style={styles.walletCard}>
-            <Ionicons name="trophy" size={24} color="#f59e0b" />
-            <Text style={styles.walletLabel}>Winning Wallet</Text>
-            <Text style={styles.walletAmount}>৳{wallet.winningWallet}</Text>
-          </View>
-          <View style={styles.walletCard}>
-            <Ionicons name="gift" size={24} color="#8b5cf6" />
-            <Text style={styles.walletLabel}>Referral Wallet</Text>
-            <Text style={styles.walletAmount}>৳{wallet.referralWallet}</Text>
-          </View>
-        </View>
-
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity style={[styles.actionButton, styles.depositButton]}>
-            <Ionicons name="arrow-down" size={20} color="#fff" />
-            <Text style={styles.actionButtonText}>Deposit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, styles.withdrawButton]}>
-            <Ionicons name="arrow-up" size={20} color="#fff" />
-            <Text style={styles.actionButtonText}>Withdraw</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Transactions</Text>
-          {transactions.map((transaction) => (
-            <View key={transaction.id} style={styles.transactionCard}>
-              <View style={styles.transactionIcon}>
-                <Ionicons
-                  name={
-                    transaction.type === 'DEPOSIT' ? 'arrow-down' :
-                    transaction.type === 'WITHDRAW' ? 'arrow-up' :
-                    transaction.type === 'EARNING' ? 'trophy' :
-                    transaction.type === 'REFERRAL' ? 'gift' : 'wallet'
-                  }
-                  size={20}
-                  color={
-                    transaction.type === 'DEPOSIT' || transaction.type === 'EARNING' || transaction.type === 'REFERRAL'
-                      ? '#10b981'
-                      : '#ef4444'
-                  }
-                />
-              </View>
-              <View style={styles.transactionInfo}>
-                <Text style={styles.transactionDescription}>{transaction.description}</Text>
-                <Text style={styles.transactionDate}>{transaction.date}</Text>
-              </View>
-              <Text style={[
-                styles.transactionAmount,
-                { color: transaction.amount > 0 ? '#10b981' : '#ef4444' }
-              ]}>
-                {transaction.amount > 0 ? '+' : ''}৳{transaction.amount}
-              </Text>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
-    </View>
+          <Badge tone={transaction.status === 'COMPLETED' ? 'success' : 'warning'}>{transaction.status}</Badge>
+        </Card>
+      )) : <Empty>No transaction</Empty>}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#111827',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#374151',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  balanceCard: {
-    backgroundColor: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-    margin: 16,
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-  },
-  balanceLabel: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 8,
-  },
-  balanceAmount: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  walletGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  walletCard: {
-    backgroundColor: '#1f2937',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    width: '30%',
-  },
-  walletLabel: {
-    fontSize: 12,
-    color: '#9ca3af',
-    marginTop: 8,
-  },
-  walletAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginTop: 4,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginHorizontal: 16,
-    marginBottom: 24,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  depositButton: {
-    backgroundColor: '#10b981',
-  },
-  withdrawButton: {
-    backgroundColor: '#3b82f6',
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  section: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 12,
-  },
-  transactionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1f2937',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-  },
-  transactionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#374151',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  transactionInfo: {
-    flex: 1,
-  },
-  transactionDescription: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#fff',
-  },
-  transactionDate: {
-    fontSize: 12,
-    color: '#9ca3af',
-    marginTop: 2,
-  },
-  transactionAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  screen: { flex: 1, backgroundColor: colors.background },
+  content: { gap: 14, padding: 16, paddingBottom: 30 },
+  balance: { color: colors.text, fontSize: 36, fontWeight: '900' },
+  switcher: { flexDirection: 'row', gap: 8 },
+  switch: { borderColor: colors.border, borderWidth: 1, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  switchActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  switchText: { color: colors.muted, fontSize: 11, fontWeight: '800' },
+  switchTextActive: { color: colors.background },
+  form: { gap: 10 },
+  input: { backgroundColor: colors.surfaceStrong, borderRadius: 6, color: colors.text, padding: 13 },
+  button: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 6, padding: 13 },
+  buttonText: { color: colors.background, fontWeight: '900' },
+  transaction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  transactionType: { color: colors.text, fontWeight: '800' },
+  meta: { color: colors.muted, fontSize: 12, marginTop: 4 },
 });

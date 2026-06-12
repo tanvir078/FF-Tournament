@@ -50,86 +50,15 @@ export default function AdminPayments() {
   const fetchPayments = async () => {
     try {
       setLoading(true);
-      // Using dummy data for now
-      const dummyPayments: Payment[] = [
-        {
-          id: '1',
-          type: 'TOURNAMENT_ENTRY',
-          userId: 'user1',
-          username: 'PlayerOne',
-          userEmail: 'player1@example.com',
-          amount: 50,
-          method: 'bKash',
-          transactionId: 'TXN123456789',
-          screenshot: 'https://example.com/screenshot1.jpg',
-          status: 'PENDING',
-          tournamentId: 't1',
-          tournamentName: 'FF Pro League Season 1',
-          createdAt: '2024-05-28T10:30:00Z',
-          description: 'Tournament entry fee payment'
-        },
-        {
-          id: '2',
-          type: 'DEPOSIT',
-          userId: 'user2',
-          username: 'ProGamer',
-          userEmail: 'progamer@example.com',
-          amount: 500,
-          method: 'Nagad',
-          transactionId: 'TXN987654321',
-          screenshot: 'https://example.com/screenshot2.jpg',
-          status: 'PENDING',
-          createdAt: '2024-05-28T09:15:00Z',
-          description: 'Wallet deposit'
-        },
-        {
-          id: '3',
-          type: 'TOURNAMENT_ENTRY',
-          userId: 'user3',
-          username: 'SniperKing',
-          userEmail: 'sniper@example.com',
-          amount: 25,
-          method: 'Rocket',
-          transactionId: 'TXN456789123',
-          screenshot: 'https://example.com/screenshot3.jpg',
-          status: 'PENDING',
-          tournamentId: 't2',
-          tournamentName: 'Weekly Clash Cup',
-          createdAt: '2024-05-28T08:00:00Z',
-          description: 'Tournament entry fee payment'
-        },
-        {
-          id: '4',
-          type: 'DEPOSIT',
-          userId: 'user4',
-          username: 'RushB',
-          userEmail: 'rushb@example.com',
-          amount: 1000,
-          method: 'Bank Transfer',
-          transactionId: 'TXN789123456',
-          screenshot: 'https://example.com/screenshot4.jpg',
-          status: 'APPROVED',
-          createdAt: '2024-05-27T15:30:00Z',
-          description: 'Wallet deposit'
-        },
-        {
-          id: '5',
-          type: 'TOURNAMENT_ENTRY',
-          userId: 'user5',
-          username: 'Medic',
-          userEmail: 'medic@example.com',
-          amount: 30,
-          method: 'bKash',
-          transactionId: 'TXN321654987',
-          screenshot: 'https://example.com/screenshot5.jpg',
-          status: 'REJECTED',
-          createdAt: '2024-05-27T12:00:00Z',
-          tournamentId: 't3',
-          tournamentName: 'Solo Showdown',
-          description: 'Tournament entry fee payment'
-        }
-      ];
-      setPayments(dummyPayments);
+      const { data } = await api.get('/payments');
+      setPayments((data.data || []).map((row: any) => ({
+        id: row.id, type: 'DEPOSIT', userId: row.wallet?.userId || '',
+        username: row.wallet?.user?.name || row.wallet?.userId || 'User',
+        userEmail: row.wallet?.user?.email || '', amount: Number(row.amount),
+        method: row.metadata?.method || 'manual', transactionId: row.reference || '',
+        status: row.status === 'COMPLETED' ? 'APPROVED' : row.status === 'FAILED' ? 'REJECTED' : 'PENDING',
+        createdAt: row.createdAt, description: row.description,
+      })));
     } catch (err) {
       console.error('Failed to fetch payments');
     } finally {
@@ -139,7 +68,7 @@ export default function AdminPayments() {
 
   const handleApprove = async (paymentId: string) => {
     try {
-      await api.patch(`/admin/payments/${paymentId}`, { status: 'APPROVED' });
+      await api.patch(`/admin/payments/${paymentId}`, { status: 'COMPLETED' });
       fetchPayments();
       alert('Payment approved successfully');
     } catch (err) {
@@ -152,7 +81,7 @@ export default function AdminPayments() {
     
     try {
       await api.patch(`/admin/payments/${selectedPayment.id}`, { 
-        status: 'REJECTED',
+        status: 'FAILED',
         rejectReason 
       });
       setShowRejectModal(false);

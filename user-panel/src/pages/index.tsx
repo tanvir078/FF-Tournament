@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/auth';
 import { Trophy, Users, Gamepad2, Play, ArrowRight, Star, Clock, DollarSign, Flame, Zap, Shield, TrendingUp, Award, Calendar, Target, Sparkles } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import Navbar from '@/components/layout/Navbar';
+import { getApiBaseUrl } from '@/lib/apiBaseUrl';
 
 interface Tournament {
   id: string;
@@ -39,6 +39,12 @@ interface Notice {
   isPinned: boolean;
 }
 
+function asArray<T>(value: any): T[] {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  return [];
+}
+
 export default function Home() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -65,9 +71,9 @@ export default function Home() {
 
   const fetchTournaments = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments`);
+      const response = await fetch(`${getApiBaseUrl()}/tournaments`);
       const data = await response.json();
-      setTournaments(data || []);
+      setTournaments(asArray<Tournament>(data));
     } catch (err) {
       console.error('Failed to fetch tournaments');
       setTournaments([]);
@@ -78,9 +84,9 @@ export default function Home() {
 
   const fetchBanners = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/banners/active`);
+      const response = await fetch(`${getApiBaseUrl()}/banners/active`);
       const data = await response.json();
-      setBanners(data || []);
+      setBanners(asArray<Banner>(data));
     } catch (err) {
       console.error('Failed to fetch banners');
       setBanners([]);
@@ -89,16 +95,16 @@ export default function Home() {
 
   const fetchNotices = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notices/active`);
+      const response = await fetch(`${getApiBaseUrl()}/notices/active`);
       const data = await response.json();
-      setNotices(data || []);
+      setNotices(asArray<Notice>(data));
     } catch (err) {
       console.error('Failed to fetch notices');
       setNotices([]);
     }
   };
 
-  const featuredTournaments = tournaments.filter(t => t.status === 'REGISTRATION_OPEN' || t.status === 'UPCOMING').slice(0, 3);
+  const featuredTournaments = tournaments.filter(t => t.status === 'REGISTRATION_OPEN').slice(0, 3);
 
   const handleJoinTournament = (tournamentId: string) => {
     if (user) {
@@ -119,8 +125,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <Navbar />
-      
       {/* Banner Slider */}
       {banners.length > 0 && (
         <div className="relative overflow-hidden h-64 md:h-96">

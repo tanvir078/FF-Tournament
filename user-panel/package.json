@@ -14,9 +14,11 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "date-fns": "^2.30.0",
+    "laravel-echo": "^2.3.4",
     "lucide-react": "^0.294.0",
     "next": "^14.0.4",
     "next-pwa": "^5.6.0",
+    "pusher-js": "^8.5.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.48.2",
@@ -36,6 +38,20 @@
     "eslint-config-next": "^14.0.4",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.3.6",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vercel": "^38.0.1",
+    "workbox-webpack-plugin": "^7.0.0",
+    "workbox-window": "^7.0.0",
+    "adobe-fonts": "^1.0.0"
+  },
+  "eslintConfig": {
+    "root": true,
+    "extends": "next/core-web-vitals",
+    "rules": {
+      "react/no-unescaped-entities": "off",
+      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/rules-of-hooks": "error",
+      "react/display-name": "off"
+    }
   }
 }

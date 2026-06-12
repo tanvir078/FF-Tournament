@@ -1,0 +1,124 @@
+/* Mobile Bottom Nav */
+.mobile_bottom_nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: #1a1a1a; /* Match your theme */
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 1px solid #333;
+  z-index: 1001; /* Above notifications if necessary */
+}
+
+@media (min-width: 1024px) {
+  .mobile_bottom_nav {
+    display: none; /* Hide on desktop */
+  }
+}
+
+
+
+.drawer_overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 2000;
+  display: flex;
+}
+
+.drawer_content {
+  width: 280px;
+  height: 100%;
+  background: #222;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.category_list {
+  list-style: none;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.category_list li a {
+  display: block;
+  padding: 12px 0;
+  color: white;
+  text-decoration: none;
+  border-bottom: 1px solid #333;
+}
+
+
+.layout_root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Fixed notification container that stays on top */
+.notification_container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000; /* High z-index to overlay content */
+  display: flex;
+  flex-direction: column-reverse; /* Notifications pop from bottom up or stacked */
+  width: 100%;
+  pointer-events: none; /* Allows clicking through empty space */
+}
+
+.notification_container > * {
+  pointer-events: auto; /* Re-enable clicks for actual notifications */
+}
+
+.layout_content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0 16px 16px;
+  box-sizing: border-box;
+  flex: 1;
+}
+
+.sidebar_layout_root {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1 1 auto;
+}
+
+/* The actual page content */
+.main_content_area {
+  display: flex;
+  flex: 1 1 0%;
+  position: relative;
+  min-width: 0; /* Prevents flex items from overflowing */
+}
+
+/* Sidebar wrapper - can be toggled via display: none/flex */
+.aside_wrapper {
+  display: none; /* Hidden by default in mobile view based on inspection */
+  flex: 0 0 250px; /* Example fixed width for sidebar */
+}
+
+@media (min-width: 1024px) {
+  .aside_wrapper {
+    display: flex;
+  }
+}

@@ -40,7 +40,7 @@ export default function AdminParticipants() {
   const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') {
+    if (!user || !['ADMIN', 'ORGANIZER'].includes(user.role)) {
       router.push('/admin/login');
       return;
     }
@@ -50,86 +50,13 @@ export default function AdminParticipants() {
   const fetchParticipants = async () => {
     try {
       setLoading(true);
-      // Using dummy data for now
-      const dummyParticipants: Participant[] = [
-        {
-          id: '1',
-          userId: 'user1',
-          username: 'PlayerOne',
-          userEmail: 'player1@example.com',
-          uid: '12345678',
-          ign: 'ProPlayer1',
-          tournamentId: 't1',
-          tournamentName: 'FF Pro League Season 1',
-          teamName: 'Elite Squad',
-          teamTag: '[ELITE]',
-          status: 'PENDING',
-          paymentStatus: 'PAID',
-          joinedAt: '2024-05-28T10:30:00Z',
-          format: 'SQUAD'
-        },
-        {
-          id: '2',
-          userId: 'user2',
-          username: 'ProGamer',
-          userEmail: 'progamer@example.com',
-          uid: '87654321',
-          ign: 'SniperKing',
-          tournamentId: 't1',
-          tournamentName: 'FF Pro League Season 1',
-          teamName: 'Fire Squad',
-          teamTag: '[FIRE]',
-          status: 'PENDING',
-          paymentStatus: 'PAID',
-          joinedAt: '2024-05-28T09:15:00Z',
-          format: 'SQUAD'
-        },
-        {
-          id: '3',
-          userId: 'user3',
-          username: 'SoloKing',
-          userEmail: 'soloking@example.com',
-          uid: '11223344',
-          ign: 'RushB',
-          tournamentId: 't2',
-          tournamentName: 'Weekly Clash Cup',
-          status: 'PENDING',
-          paymentStatus: 'PAID',
-          joinedAt: '2024-05-28T08:00:00Z',
-          format: 'CLASH_SQUAD'
-        },
-        {
-          id: '4',
-          userId: 'user4',
-          username: 'MedicMain',
-          userEmail: 'medic@example.com',
-          uid: '55667788',
-          ign: 'Medic',
-          tournamentId: 't1',
-          tournamentName: 'FF Pro League Season 1',
-          teamName: 'Night Hunters',
-          teamTag: '[NH]',
-          status: 'APPROVED',
-          paymentStatus: 'PAID',
-          joinedAt: '2024-05-27T15:30:00Z',
-          format: 'SQUAD'
-        },
-        {
-          id: '5',
-          userId: 'user5',
-          username: 'NewPlayer',
-          userEmail: 'newplayer@example.com',
-          uid: '99887766',
-          ign: 'NoobMaster',
-          tournamentId: 't3',
-          tournamentName: 'Solo Showdown',
-          status: 'REJECTED',
-          paymentStatus: 'FAILED',
-          joinedAt: '2024-05-27T12:00:00Z',
-          format: 'SOLO'
-        }
-      ];
-      setParticipants(dummyParticipants);
+      const { data } = await api.get('/management/registrations');
+      setParticipants((data || []).map((row: any) => ({
+        ...row, username: row.user?.name || row.userId, userEmail: row.user?.email || '',
+        uid: row.user?.uid, ign: row.user?.ign, tournamentName: row.tournament?.title || '',
+        joinedAt: row.createdAt, format: row.tournament?.format || 'SOLO',
+        paymentStatus: row.status === 'APPROVED' ? 'PAID' : row.status === 'REJECTED' ? 'FAILED' : 'PENDING',
+      })));
     } catch (err) {
       console.error('Failed to fetch participants');
     } finally {
@@ -139,7 +66,7 @@ export default function AdminParticipants() {
 
   const handleApprove = async (participantId: string) => {
     try {
-      await api.patch(`/admin/participants/${participantId}`, { status: 'APPROVED' });
+      await api.put(`/tournaments/registrations/${participantId}/approve`);
       fetchParticipants();
       alert('Participant approved successfully');
     } catch (err) {
@@ -151,10 +78,7 @@ export default function AdminParticipants() {
     if (!selectedParticipant || !rejectReason) return;
     
     try {
-      await api.patch(`/admin/participants/${selectedParticipant.id}`, { 
-        status: 'REJECTED',
-        rejectReason 
-      });
+      await api.put(`/tournaments/registrations/${selectedParticipant.id}/reject`);
       setShowRejectModal(false);
       setRejectReason('');
       setSelectedParticipant(null);

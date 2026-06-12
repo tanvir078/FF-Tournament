@@ -45,7 +45,7 @@ export default function AdminResults() {
   const [editingResults, setEditingResults] = useState<Record<string, { position: number; kills: number; points: number }>>({});
 
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') {
+    if (!user || !['ADMIN', 'ORGANIZER'].includes(user.role)) {
       router.push('/admin/login');
       return;
     }
@@ -55,45 +55,13 @@ export default function AdminResults() {
   const fetchMatches = async () => {
     try {
       setLoading(true);
-      // Using dummy data for now
-      const dummyMatches: MatchResult[] = [
-        {
-          id: '1',
-          tournamentId: 't1',
-          tournamentName: 'FF Pro League Season 1',
-          matchNumber: 1,
-          status: 'PENDING',
-          createdAt: '2024-05-28T20:00:00Z'
-        },
-        {
-          id: '2',
-          tournamentId: 't1',
-          tournamentName: 'FF Pro League Season 1',
-          matchNumber: 2,
-          status: 'PUBLISHED',
-          publishedAt: '2024-05-28T21:30:00Z',
-          createdAt: '2024-05-28T21:00:00Z'
-        },
-        {
-          id: '3',
-          tournamentId: 't2',
-          tournamentName: 'Weekly Clash Cup',
-          matchNumber: 1,
-          status: 'PUBLISHED',
-          publishedAt: '2024-05-27T20:30:00Z',
-          createdAt: '2024-05-27T19:00:00Z'
-        },
-        {
-          id: '4',
-          tournamentId: 't3',
-          tournamentName: 'Solo Showdown',
-          matchNumber: 5,
-          status: 'PUBLISHED',
-          publishedAt: '2024-05-20T19:30:00Z',
-          createdAt: '2024-05-20T18:00:00Z'
-        }
-      ];
-      setMatches(dummyMatches);
+      const { data } = await api.get('/matches');
+      setMatches((data || []).map((match: any) => ({
+        ...match,
+        tournamentName: match.tournament?.title || 'Tournament',
+        status: match.status === 'COMPLETED' ? 'PUBLISHED' : 'PENDING',
+        createdAt: match.createdAt || match.scheduledTime,
+      })));
     } catch (err) {
       console.error('Failed to fetch matches');
     } finally {
@@ -103,52 +71,20 @@ export default function AdminResults() {
 
   const fetchMatchResults = async (matchId: string) => {
     try {
-      // Using dummy data for now
-      const dummyResults: ParticipantResult[] = [
-        {
-          participantId: 'p1',
-          userId: 'u1',
-          username: 'PlayerOne',
-          teamName: 'Elite Squad',
-          position: 1,
-          kills: 12,
-          points: 150,
-          prize: 500
-        },
-        {
-          participantId: 'p2',
-          userId: 'u2',
-          username: 'ProGamer',
-          teamName: 'Fire Squad',
-          position: 2,
-          kills: 10,
-          points: 130,
-          prize: 300
-        },
-        {
-          participantId: 'p3',
-          userId: 'u3',
-          username: 'SniperKing',
-          teamName: 'Night Hunters',
-          position: 3,
-          kills: 8,
-          points: 110,
-          prize: 200
-        },
-        {
-          participantId: 'p4',
-          userId: 'u4',
-          username: 'MedicMain',
-          teamName: 'Storm Breakers',
-          position: 4,
-          kills: 6,
-          points: 90,
-          prize: 100
-        }
-      ];
-      setResults(dummyResults);
+      const { data } = await api.get(`/matches/${matchId}`);
+      const matchResults = (data.results || []).map((result: any) => ({
+        participantId: result.participantId || result.teamId,
+        userId: result.userId || result.teamId,
+        username: result.username || result.teamName || result.teamId,
+        teamName: result.teamName,
+        position: result.position || result.placement || 0,
+        kills: result.kills || 0,
+        points: result.points || 0,
+        prize: result.prize || 0,
+      }));
+      setResults(matchResults);
       setEditingResults(
-        dummyResults.reduce((acc, r) => ({
+        matchResults.reduce((acc: Record<string, { position: number; kills: number; points: number }>, r: ParticipantResult) => ({
           ...acc,
           [r.participantId]: { position: r.position, kills: r.kills, points: r.points }
         }), {})
@@ -160,7 +96,7 @@ export default function AdminResults() {
 
   const handlePublishResults = async () => {
     try {
-      await api.post(`/admin/matches/${selectedMatch?.id}/publish`, { results: editingResults });
+      await api.patch(`/matches/${selectedMatch?.id}`, { results: Object.values(editingResults), status: 'COMPLETED' });
       setShowPublishModal(false);
       fetchMatches();
       alert('Results published successfully');
@@ -243,7 +179,7 @@ export default function AdminResults() {
               <Users className="h-4 w-4" />
               Total Results
             </div>
-            <div className="text-3xl font-bold text-purple-400">156</div>
+            <div className="text-3xl font-bold text-purple-400">{matches.filter((match) => match.status === 'PUBLISHED').length}</div>
           </Card>
         </div>
 

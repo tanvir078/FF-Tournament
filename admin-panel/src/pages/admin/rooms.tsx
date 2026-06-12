@@ -36,7 +36,7 @@ export default function AdminRooms() {
   const [editFormData, setEditFormData] = useState({ roomId: '', password: '' });
 
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') {
+    if (!user || !['ADMIN', 'ORGANIZER'].includes(user.role)) {
       router.push('/admin/login');
       return;
     }
@@ -46,70 +46,11 @@ export default function AdminRooms() {
   const fetchRooms = async () => {
     try {
       setLoading(true);
-      // Using dummy data for now
-      const dummyRooms: RoomDetails[] = [
-        {
-          id: '1',
-          tournamentId: 't1',
-          tournamentName: 'FF Pro League Season 1',
-          matchNumber: 1,
-          roomId: '12345678',
-          password: 'PRO2024',
-          status: 'ACTIVE',
-          createdAt: '2024-05-28T10:00:00Z',
-          format: 'SQUAD',
-          map: 'Bermuda'
-        },
-        {
-          id: '2',
-          tournamentId: 't1',
-          tournamentName: 'FF Pro League Season 1',
-          matchNumber: 2,
-          roomId: '87654321',
-          password: 'PRO2024',
-          status: 'ACTIVE',
-          createdAt: '2024-05-28T11:00:00Z',
-          format: 'SQUAD',
-          map: 'Purgatory'
-        },
-        {
-          id: '3',
-          tournamentId: 't2',
-          tournamentName: 'Weekly Clash Cup',
-          matchNumber: 1,
-          roomId: '55555555',
-          password: 'CLASH123',
-          status: 'ACTIVE',
-          createdAt: '2024-05-28T09:00:00Z',
-          format: 'CLASH_SQUAD',
-          map: 'Kalahari'
-        },
-        {
-          id: '4',
-          tournamentId: 't3',
-          tournamentName: 'Solo Showdown',
-          matchNumber: 5,
-          roomId: '99999999',
-          password: 'SOLO2024',
-          status: 'INACTIVE',
-          createdAt: '2024-05-20T18:00:00Z',
-          format: 'SOLO',
-          map: 'Bermuda'
-        },
-        {
-          id: '5',
-          tournamentId: 't1',
-          tournamentName: 'FF Pro League Season 1',
-          matchNumber: 3,
-          roomId: '11111111',
-          password: 'PRO2024',
-          status: 'EXPIRED',
-          createdAt: '2024-05-15T20:00:00Z',
-          format: 'SQUAD',
-          map: 'Kalahari'
-        }
-      ];
-      setRooms(dummyRooms);
+      const { data } = await api.get('/management/rooms');
+      setRooms((data || []).map((room: any) => ({
+        ...room,
+        status: room.status === 'COMPLETED' ? 'EXPIRED' : room.status === 'IN_PROGRESS' ? 'ACTIVE' : 'INACTIVE',
+      })));
     } catch (err) {
       console.error('Failed to fetch rooms');
     } finally {
@@ -119,7 +60,7 @@ export default function AdminRooms() {
 
   const handleUpdateRoom = async (roomId: string) => {
     try {
-      await api.patch(`/admin/rooms/${roomId}`, editFormData);
+      await api.patch(`/management/rooms/${roomId}`, editFormData);
       setEditingRoom(null);
       setEditFormData({ roomId: '', password: '' });
       fetchRooms();
@@ -134,7 +75,7 @@ export default function AdminRooms() {
     
     try {
       const newPassword = Math.random().toString(36).substring(2, 10).toUpperCase();
-      await api.patch(`/admin/rooms/${roomId}`, { password: newPassword });
+      await api.patch(`/management/rooms/${roomId}`, { password: newPassword });
       fetchRooms();
       alert('Password regenerated successfully');
     } catch (err) {

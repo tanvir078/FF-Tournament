@@ -1,6 +1,6 @@
-# FF Tournament Manager
+# ArenaHub Tournament Platform
 
-A comprehensive Free Fire tournament management system with three independent projects: backend API, admin panel, and user panel.
+A multi-game esports tournament management system with Laravel API, management panel, user web, and Expo mobile clients.
 
 ## Features
 
@@ -15,7 +15,7 @@ A comprehensive Free Fire tournament management system with three independent pr
 
 ```
 FF-Tournament/
-├── backend-api/         # NestJS API (port 3001)
+├── ff-backend-api/      # Laravel API (port 8000)
 ├── admin-panel/         # Next.js Admin Dashboard (port 3002)
 ├── user-panel/          # Next.js User Portal (port 3000)
 └── README.md
@@ -23,16 +23,11 @@ FF-Tournament/
 
 ## Tech Stack
 
-### Backend API (NestJS)
-- Node.js
-- NestJS Framework
-- PostgreSQL with TypeORM
-- JWT Authentication
-- Redis for caching
-- Bull for job queues
-- Socket.IO for real-time features
-- Stripe & SSLCommerz for payments
-- AWS S3 for file storage
+### Backend API (Laravel)
+- PHP 8.3+
+- Laravel Framework
+- PostgreSQL
+- Laravel Sanctum token authentication
 
 ### Admin Panel (Next.js)
 - Next.js 14
@@ -40,7 +35,7 @@ FF-Tournament/
 - TailwindCSS
 - Lucide React Icons
 - Axios
-- Socket.IO Client
+- Laravel Echo + Reverb
 - Zustand for state management
 
 ### User Panel (Next.js)
@@ -49,7 +44,7 @@ FF-Tournament/
 - TailwindCSS
 - Lucide React Icons
 - Axios
-- Socket.IO Client
+- Laravel Echo + Reverb
 - Zustand for state management
 
 ## Setup Instructions
@@ -57,39 +52,57 @@ FF-Tournament/
 ### Prerequisites
 
 - Node.js (v18 or higher)
+- PHP 8.3 or higher
+- Composer
 - PostgreSQL (installed locally or cloud database)
-- Redis (for caching and job queues)
 - npm or yarn
 
 ### Backend API Setup
 
-1. Navigate to the backend-api directory:
+1. Navigate to the Laravel backend directory:
 ```bash
-cd backend-api
+cd ff-backend-api
 ```
 
 2. Install dependencies:
 ```bash
-npm install
+composer install
 ```
 
 3. Configure environment variables in `.env`:
 ```env
-DB_HOST=localhost
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
 DB_PORT=5432
+DB_DATABASE=ff_tournament
 DB_USERNAME=your_username
 DB_PASSWORD=your_password
-DB_DATABASE=ff_tournament
-JWT_SECRET=your-jwt-secret
-PORT=3001
 ```
 
-4. Start the backend server:
+4. Prepare and start the backend:
 ```bash
-npm run start:dev
+php artisan key:generate
+php artisan migrate
+php artisan serve --port=8000
 ```
 
-The backend API will run on `http://localhost:3001/api`
+The backend API will run on `http://127.0.0.1:8000/api`
+
+### ArenaHub Additive Migration And Runtime Services
+
+Deploy the catalog migration before updated clients:
+
+```bash
+cd ff-backend-api
+php artisan migrate --force
+php artisan reverb:start
+php artisan queue:work
+php artisan schedule:work
+```
+
+The migration seeds Free Fire, PUBG Mobile, eFootball, and Mobile Legends. Existing tournaments, teams, and UID/IGN values are backfilled to Free Fire without resetting wallet or transaction records. Admins manage catalog entries from `/admin/games`, verify identities from `/admin/game-profiles`, and update branding from `/admin/settings`.
+
+The scheduler runs `tournaments:expire-check-ins` every minute so missed captain check-ins release their registration slots.
 
 ### Admin Panel Setup
 
@@ -105,7 +118,7 @@ npm install
 
 3. Configure environment variables in `.env.local`:
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api
 ```
 
 4. Start the development server:
@@ -129,7 +142,7 @@ npm install
 
 3. Configure environment variables in `.env.local`:
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api
 ```
 
 4. Start the development server:
@@ -145,8 +158,8 @@ To run all three projects simultaneously, open three terminal windows:
 
 ```bash
 # Terminal 1 - Backend API
-cd backend-api
-npm run start:dev
+cd ff-backend-api
+php artisan serve --port=8000
 
 # Terminal 2 - Admin Panel
 cd admin-panel
@@ -162,13 +175,15 @@ npm run dev
 ### Authentication
 - `POST /api/auth/register` - Register a new user
 - `POST /api/auth/login` - Login user
+- `POST /api/auth/admin/login` - Login admin
+- `GET /api/auth/profile` - Get authenticated profile
 
 ### Tournaments
 - `GET /api/tournaments` - Get all tournaments
 - `GET /api/tournaments/:id` - Get single tournament
 - `POST /api/tournaments` - Create tournament
 - `PUT /api/tournaments/:id` - Update tournament
-- `DELETE /api/tournaments/:id` - Delete tournament
+- `POST /api/tournaments/:id/join` - Join tournament
 
 ### Teams
 - `GET /api/teams` - Get all teams
@@ -177,19 +192,19 @@ npm run dev
 - `PUT /api/teams/:id` - Update team
 - `DELETE /api/teams/:id` - Delete team
 
-### Players
-- `GET /api/players` - Get all players
-- `GET /api/players/:id` - Get single player
-- `POST /api/players` - Create player
-- `PUT /api/players/:id` - Update player
-- `DELETE /api/players/:id` - Delete player
+### Users
+- `GET /api/users/profile` - Get authenticated user profile
+- `PUT /api/users/profile` - Update authenticated user profile
+- `PUT /api/users/change-password` - Change user password
 
 ### Matches
 - `GET /api/matches` - Get all matches
 - `GET /api/matches/:id` - Get single match
 - `POST /api/matches` - Create match
-- `PUT /api/matches/:id` - Update match
-- `DELETE /api/matches/:id` - Delete match
+
+### Wallet
+- `GET /api/wallet` - Get authenticated user wallet
+- `POST /api/wallet/deposit` - Submit deposit request
 
 ## Pages
 
@@ -206,7 +221,7 @@ npm run dev
 
 ### Adding New Features
 
-1. **Backend**: Add new routes in the `routes/` directory and models in `models/`
+1. **Backend**: Add new routes in `ff-backend-api/routes/` and models in `ff-backend-api/app/Models/`
 2. **Frontend**: Add new pages in `src/pages/` and components in `src/components/`
 
 ### Database Models
@@ -233,3 +248,16 @@ ISC
 ## Support
 
 For issues and questions, please contact the development team.
+# FF Tournament Platform
+
+## Local Services
+
+- Laravel API: `cd ff-backend-api && php artisan serve --port=8000`
+- Queue worker: `cd ff-backend-api && php artisan queue:work`
+- Reverb WebSocket server: `cd ff-backend-api && php artisan reverb:start`
+- Scheduler: `cd ff-backend-api && php artisan schedule:work`
+- User web: `cd user-panel && npm run dev`
+- Management panel: `cd admin-panel && npm run dev`
+- Expo app: set `EXPO_PUBLIC_API_URL` to the computer LAN IP with port `8000`, then run `npm start`.
+
+Tournament entry fees are wallet-only. Users add money with a transaction ID, admins verify deposits, and approved result claims credit individual user wallets. Support messages are persisted first and broadcast over private Reverb channels.

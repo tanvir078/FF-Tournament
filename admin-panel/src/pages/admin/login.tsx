@@ -25,8 +25,8 @@ export default function AdminLogin() {
       const response = await api.post('/auth/admin/login', { email, password });
       const { user, access_token } = response.data;
       
-      if (user.role !== 'ADMIN') {
-        setError('Access denied. Admin privileges required.');
+      if (!['ADMIN', 'ORGANIZER'].includes(user.role)) {
+        setError('Access denied. Management privileges required.');
         return;
       }
 
@@ -34,7 +34,11 @@ export default function AdminLogin() {
       setToken(access_token);
       router.push('/admin');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      if (!err.response) {
+        setError('Unable to reach the API server. Please make sure the backend is running.');
+      } else {
+        setError(err.response.data?.message || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -47,7 +51,7 @@ export default function AdminLogin() {
           <div className="flex items-center justify-center gap-2 mb-4">
             <Shield className="h-12 w-12 text-blue-400" />
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-              Admin Panel
+              Management Panel
             </h1>
           </div>
           <p className="text-gray-400">Sign in to manage the platform</p>

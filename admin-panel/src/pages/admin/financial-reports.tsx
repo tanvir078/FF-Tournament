@@ -29,7 +29,7 @@ interface Transaction {
   id: string;
   userId: string;
   username: string;
-  type: 'DEPOSIT' | 'WITHDRAWAL' | 'EARNING' | 'REFERRAL' | 'ENTRY_FEE';
+  type: 'DEPOSIT' | 'WITHDRAWAL' | 'PRIZE' | 'REFUND' | 'ENTRY_FEE' | 'ADJUSTMENT';
   amount: number;
   walletType: 'main' | 'winning' | 'referral';
   status: 'PENDING' | 'COMPLETED' | 'REJECTED';
@@ -61,60 +61,9 @@ export default function FinancialReports() {
   const fetchFinancialData = async () => {
     try {
       setLoading(true);
-      // Using dummy data for now
-      const dummyWallets: Wallet[] = [
-        { 
-          id: '1', userId: 'user1', username: 'PlayerOne', email: 'player1@example.com',
-          mainWallet: 500, winningWallet: 1250, referralWallet: 200, totalBalance: 1950,
-          totalDeposits: 1000, totalWithdrawals: 500, status: 'ACTIVE'
-        },
-        { 
-          id: '2', userId: 'user2', username: 'ProGamer', email: 'progamer@example.com',
-          mainWallet: 250, winningWallet: 800, referralWallet: 150, totalBalance: 1200,
-          totalDeposits: 500, totalWithdrawals: 250, status: 'ACTIVE'
-        },
-        { 
-          id: '3', userId: 'user3', username: 'SniperKing', email: 'sniper@example.com',
-          mainWallet: 100, winningWallet: 500, referralWallet: 50, totalBalance: 650,
-          totalDeposits: 200, totalWithdrawals: 100, status: 'ACTIVE'
-        },
-        { 
-          id: '4', userId: 'user4', username: 'MedicMain', email: 'medic@example.com',
-          mainWallet: 0, winningWallet: 0, referralWallet: 0, totalBalance: 0,
-          totalDeposits: 0, totalWithdrawals: 0, status: 'FROZEN'
-        }
-      ];
-      
-      const dummyTransactions: Transaction[] = [
-        { 
-          id: '1', userId: 'user1', username: 'PlayerOne', type: 'DEPOSIT', amount: 500,
-          walletType: 'main', status: 'COMPLETED', date: '2024-05-30T10:00:00Z',
-          description: 'Deposit via bKash'
-        },
-        { 
-          id: '2', userId: 'user1', username: 'PlayerOne', type: 'EARNING', amount: 150,
-          walletType: 'winning', status: 'COMPLETED', date: '2024-05-29T15:00:00Z',
-          description: 'Tournament Prize - Weekly Cup'
-        },
-        { 
-          id: '3', userId: 'user2', username: 'ProGamer', type: 'WITHDRAWAL', amount: -200,
-          walletType: 'main', status: 'PENDING', date: '2024-05-28T12:00:00Z',
-          description: 'Withdrawal to bKash'
-        },
-        { 
-          id: '4', userId: 'user3', username: 'SniperKing', type: 'REFERRAL', amount: 50,
-          walletType: 'referral', status: 'COMPLETED', date: '2024-05-27T09:00:00Z',
-          description: 'Referral Bonus'
-        },
-        { 
-          id: '5', userId: 'user1', username: 'PlayerOne', type: 'ENTRY_FEE', amount: -50,
-          walletType: 'main', status: 'COMPLETED', date: '2024-05-26T20:00:00Z',
-          description: 'Tournament Entry - Pro League'
-        }
-      ];
-      
-      setWallets(dummyWallets);
-      setTransactions(dummyTransactions);
+      const { data } = await api.get('/admin/financial-reports', { params: { range: timeRange } });
+      setWallets(data.wallets || []);
+      setTransactions(data.transactions || []);
     } catch (err) {
       console.error('Failed to fetch financial data');
     } finally {
@@ -348,7 +297,7 @@ export default function FinancialReports() {
               <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
                 <div className="flex items-center gap-4">
                   <div className={`p-2 rounded-lg ${
-                    transaction.type === 'DEPOSIT' || transaction.type === 'EARNING' || transaction.type === 'REFERRAL'
+                    transaction.amount > 0
                       ? 'bg-green-500/20'
                       : 'bg-red-500/20'
                   }`}>
@@ -356,7 +305,7 @@ export default function FinancialReports() {
                       <ArrowUpRight className="h-5 w-5 text-green-400" />
                     ) : transaction.type === 'WITHDRAWAL' ? (
                       <ArrowDownRight className="h-5 w-5 text-red-400" />
-                    ) : transaction.type === 'EARNING' ? (
+                    ) : transaction.type === 'PRIZE' ? (
                       <TrendingUp className="h-5 w-5 text-green-400" />
                     ) : (
                       <Wallet className="h-5 w-5 text-purple-400" />

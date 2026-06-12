@@ -5,6 +5,7 @@ import api from '../../../../lib/api';
 import Card from '../../../../components/ui/Card';
 import Button from '../../../../components/ui/Button';
 import Input from '../../../../components/ui/Input';
+import TournamentWorkspaceTabs from '@/components/tournaments/TournamentWorkspaceTabs';
 
 export default function EditTournament() {
   const router = useRouter();
@@ -13,10 +14,14 @@ export default function EditTournament() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [games, setGames] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     title: '',
+    gameId: '',
+    gameModeId: '',
     description: '',
     format: 'SQUAD',
+    competitionMode: 'STANDARD',
     entryFee: 0,
     prizePool: 0,
     maxTeams: 100,
@@ -27,12 +32,29 @@ export default function EditTournament() {
     rules: [] as string[],
     maps: [] as string[],
     banner: '',
+    perKillReward: 0,
+    prizeDistribution: { '1': 0, '2': 0, '3': 0 },
+    roomDetails: { roomId: '', password: '' },
+    requiresVerifiedProfile: false,
+    checkInEnabled: false,
+    checkInOpensAt: '',
+    checkInClosesAt: '',
   });
   const [ruleInput, setRuleInput] = useState('');
   const [mapInput, setMapInput] = useState('');
+  const selectedGame = games.find((game) => game.id === formData.gameId);
+  const selectGame = (gameId: string) => {
+    const game = games.find((item) => item.id === gameId);
+    const mode = game?.modes?.find((item: any) => item.enabled);
+    setFormData({ ...formData, gameId, gameModeId: mode?.id || '', format: mode?.format || 'SOLO', maps: [] });
+  };
+  const selectMode = (gameModeId: string) => {
+    const mode = selectedGame?.modes?.find((item: any) => item.id === gameModeId);
+    setFormData({ ...formData, gameModeId, format: mode?.format || formData.format });
+  };
 
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') {
+    if (!user || !['ADMIN', 'ORGANIZER'].includes(user.role)) {
       router.push('/admin/login');
       return;
     }
@@ -40,6 +62,7 @@ export default function EditTournament() {
       fetchTournament();
     }
   }, [user, id]);
+  useEffect(() => { api.get('/games').then(({ data }) => setGames(data || [])); }, []);
 
   const fetchTournament = async () => {
     try {
@@ -48,8 +71,11 @@ export default function EditTournament() {
       const tournament = response.data;
       setFormData({
         title: tournament.title || '',
+        gameId: tournament.gameId || '',
+        gameModeId: tournament.gameModeId || '',
         description: tournament.description || '',
         format: tournament.format || 'SQUAD',
+        competitionMode: tournament.competitionMode || 'STANDARD',
         entryFee: tournament.entryFee || 0,
         prizePool: tournament.prizePool || 0,
         maxTeams: tournament.maxTeams || 100,
@@ -60,6 +86,13 @@ export default function EditTournament() {
         rules: tournament.rules || [],
         maps: tournament.maps || [],
         banner: tournament.banner || '',
+        perKillReward: tournament.perKillReward || 0,
+        prizeDistribution: { '1': tournament.prizeDistribution?.['1'] || 0, '2': tournament.prizeDistribution?.['2'] || 0, '3': tournament.prizeDistribution?.['3'] || 0 },
+        roomDetails: tournament.roomDetails || { roomId: '', password: '' },
+        requiresVerifiedProfile: tournament.requiresVerifiedProfile || false,
+        checkInEnabled: tournament.checkInEnabled || false,
+        checkInOpensAt: tournament.checkInOpensAt ? tournament.checkInOpensAt.slice(0, 16) : '',
+        checkInClosesAt: tournament.checkInClosesAt ? tournament.checkInClosesAt.slice(0, 16) : '',
       });
     } catch (err) {
       setError('Failed to load tournament');
@@ -116,6 +149,7 @@ export default function EditTournament() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-8">
+        <TournamentWorkspaceTabs tournamentId={String(id)} active="Settings" />
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Edit Tournament</h1>
           <Button variant="outline" onClick={() => router.push('/admin/tournaments')}>
@@ -132,6 +166,16 @@ export default function EditTournament() {
         <Card className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-2">Game *</label>
+                <select value={formData.gameId} onChange={(e) => selectGame(e.target.value)} className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3" required><option value="">Select game</option>{games.map((game) => <option key={game.id} value={game.id}>{game.name}</option>)}</select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Game Mode *</label>
+                <select value={formData.gameModeId} onChange={(e) => selectMode(e.target.value)} className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3" required><option value="">Select mode</option>{(selectedGame?.modes || []).filter((mode: any) => mode.enabled).map((mode: any) => <option key={mode.id} value={mode.id}>{mode.name} · {mode.rosterSize} starters + {mode.substituteLimit} subs</option>)}</select>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-2">Title *</label>
                 <Input
@@ -156,7 +200,7 @@ export default function EditTournament() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Entry Fee ($) *</label>
+                <label className="block text-sm font-medium mb-2">Entry Fee (৳) *</label>
                 <Input
                   type="number"
                   value={formData.entryFee}
@@ -168,7 +212,39 @@ export default function EditTournament() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Prize Pool ($) *</label>
+                <label className="block text-sm font-medium mb-2">Competition Mode *</label>
+                <select value={formData.competitionMode} onChange={(e) => setFormData({ ...formData, competitionMode: e.target.value })} className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3">
+                  <option value="STANDARD">Standard</option>
+                  <option value="KNOCKOUT">Knockout (16 or 32 teams)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Per Kill Reward (৳)</label>
+                <Input type="number" value={formData.perKillReward} onChange={(e) => setFormData({ ...formData, perKillReward: parseFloat(e.target.value) || 0 })} min="0" />
+              </div>
+
+              {(['1', '2', '3'] as const).map((placement) => <div key={placement}>
+                <label className="block text-sm font-medium mb-2">Placement #{placement} Reward (৳)</label>
+                <Input type="number" value={formData.prizeDistribution[placement]} onChange={(e) => setFormData({ ...formData, prizeDistribution: { ...formData.prizeDistribution, [placement]: parseFloat(e.target.value) || 0 } })} min="0" />
+              </div>)}
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Default Room ID</label>
+                <Input value={formData.roomDetails.roomId} onChange={(e) => setFormData({ ...formData, roomDetails: { ...formData.roomDetails, roomId: e.target.value } })} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Default Room Password</label>
+                <Input value={formData.roomDetails.password} onChange={(e) => setFormData({ ...formData, roomDetails: { ...formData.roomDetails, password: e.target.value } })} />
+              </div>
+
+              <label className="flex items-center gap-2"><input type="checkbox" checked={formData.requiresVerifiedProfile} onChange={(e) => setFormData({ ...formData, requiresVerifiedProfile: e.target.checked })} /> Require verified game profiles</label>
+              <label className="flex items-center gap-2"><input type="checkbox" checked={formData.checkInEnabled} onChange={(e) => setFormData({ ...formData, checkInEnabled: e.target.checked })} /> Enable captain check-in</label>
+              {formData.checkInEnabled && <><div><label className="block text-sm font-medium mb-2">Check-in Opens</label><Input type="datetime-local" value={formData.checkInOpensAt} onChange={(e) => setFormData({ ...formData, checkInOpensAt: e.target.value })} /></div><div><label className="block text-sm font-medium mb-2">Check-in Closes</label><Input type="datetime-local" value={formData.checkInClosesAt} onChange={(e) => setFormData({ ...formData, checkInClosesAt: e.target.value })} /></div></>}
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Prize Pool (৳) *</label>
                 <Input
                   type="number"
                   value={formData.prizePool}
